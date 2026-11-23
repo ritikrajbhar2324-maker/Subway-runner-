@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Runner Mini Game</title>
+  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; touch-action: none; }
     body {
@@ -82,8 +83,7 @@
     <button class="ctrl" id="btn-duck">DUCK</button>
   </div>
 
-  <!-- APNA AD NETWORK SCRIPT / BANNER CODE YAHAN PASTE KAREIN -->
-  <div id="ad-slot">Your Ad Slot (Place Ad Network Script Here)</div>
+  <div id="ad-slot">AdsGram Interstitial Active (int-61505)</div>
 
   <script>
     const canvas = document.getElementById("game");
@@ -91,11 +91,14 @@
     const scoreEl = document.getElementById("score");
     const bestEl = document.getElementById("best");
 
+    const ADSGRAM_BLOCK_ID = "int-61505";
+    const adController = window.AdsGram?.init({ blockId: ADSGRAM_BLOCK_ID });
+
     const groundY = 470;
     let best = Number(localStorage.getItem("runner_best") || 0);
     bestEl.textContent = best;
 
-    let player, obstacles, score, speed, gameOver, ducking;
+    let player, obstacles, score, speed, gameOver, ducking, adShowing;
 
     function resetGame() {
       player = { x: 80, y: groundY - 50, w: 40, h: 50, vy: 0, onGround: true };
@@ -104,11 +107,34 @@
       speed = 5;
       gameOver = false;
       ducking = false;
+      adShowing = false;
       scoreEl.textContent = 0;
     }
 
+    function restartWithAd() {
+      if (adShowing) return;
+
+      if (!adController) {
+        resetGame();
+        return;
+      }
+
+      adShowing = true;
+      adController
+        .show()
+        .then(() => {
+          resetGame();
+        })
+        .catch(() => {
+          resetGame();
+        });
+    }
+
     function jump() {
-      if (gameOver) { resetGame(); return; }
+      if (gameOver) {
+        restartWithAd();
+        return;
+      }
       if (player.onGround) {
         player.vy = -14;
         player.onGround = false;
@@ -125,7 +151,8 @@
     }
 
     document.getElementById("btn-jump").addEventListener("pointerdown", jump);
-    const duckBtn = document.getElementById("btn-duck");
+
+const duckBtn = document.getElementById("btn-duck");
     duckBtn.addEventListener("pointerdown", () => setDuck(true));
     duckBtn.addEventListener("pointerup", () => setDuck(false));
     duckBtn.addEventListener("pointerleave", () => setDuck(false));
@@ -221,4 +248,3 @@
   </script>
 </body>
 </html>
-
