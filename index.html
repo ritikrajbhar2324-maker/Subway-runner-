@@ -7,7 +7,7 @@
   <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; touch-action: none; }
-    body {h
+    body {
       background: #111827;
       color: #ffffff;
       font-family: system-ui, -apple-system, sans-serif;
@@ -83,7 +83,7 @@
     <button class="ctrl" id="btn-duck">DUCK</button>
   </div>
 
-  <div id="ad-slot">AdsGram Interstitial Ready (int-61505)</div>
+  <div id="ad-slot">AdsGram Interstitial Active (int-61505)</div>
 
   <script>
     const canvas = document.getElementById("game");
@@ -93,13 +93,33 @@
     const adSlot = document.getElementById("ad-slot");
 
     const ADSGRAM_BLOCK_ID = "int-61505";
-    const adController = window.AdsGram?.init({ blockId: ADSGRAM_BLOCK_ID });
+    let adController = null;
+
+    if (window.AdsGram && typeof window.AdsGram.init === "function") {
+      try {
+        adController = window.AdsGram.init({ blockId: ADSGRAM_BLOCK_ID });
+      } catch (e) {
+        adController = null;
+      }
+    }
 
     const groundY = 470;
-    let best = Number(localStorage.getItem("runner_best") || 0);
+    let best = 0;
+    try {
+      best = Number(localStorage.getItem("runner_best") || 0);
+    } catch (e) {
+      best = 0;
+    }
     bestEl.textContent = best;
 
-    let player, obstacles, score, speed, gameOver, ducking, adShowing;
+    let player = { x: 80, y: groundY - 50, w: 40, h: 50, vy: 0, onGround: true };
+    let obstacles = [];
+    let score = 0;
+    let speed = 5;
+    let gameOver = false;
+    let ducking = false;
+    let adShowing = false;
+    let spawnTimer = 0;
 
     function resetGame() {
       player = { x: 80, y: groundY - 50, w: 40, h: 50, vy: 0, onGround: true };
@@ -109,30 +129,30 @@
       gameOver = false;
       ducking = false;
       adShowing = false;
+      spawnTimer = 0;
       scoreEl.textContent = 0;
     }
 
     function restartWithAd() {
       if (adShowing) return;
 
-      if (!window.AdsGram || !adController) {
-        adSlot.textContent = "SDK/Controller not ready (int-61505)";
+      if (!adController || typeof adController.show !== "function") {
+        adSlot.textContent = "Ad controller unavailable, restarting...";
         resetGame();
         return;
       }
 
       adShowing = true;
-      adSlot.textContent = "Requesting AdsGram ad (int-61505)...";
+      adSlot.textContent = "Loading ad (int-61505)...";
 
       adController
         .show()
         .then(() => {
-          adSlot.textContent = "Ad completed (int-61505)";
+          adSlot.textContent = "Ad shown (int-61505)";
           resetGame();
         })
         .catch((err) => {
-          const msg = err?.description  err?.message  "No fill / closed";
-          adSlot.textContent = "Ad fallback: " + msg;
+          adSlot.textContent = "No ad fill: " + (err?.description || err?.message || "restarted");
           resetGame();
         });
     }
@@ -148,7 +168,7 @@
       }
     }
 
-function setDuck(active) {
+    function setDuck(active) {
       if (gameOver) return;
       ducking = active;
       if (player.onGround) {
@@ -174,7 +194,6 @@ function setDuck(active) {
       });
     }
 
-    let spawnTimer = 0;
     function loop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -182,10 +201,13 @@ function setDuck(active) {
         score++;
         if (score % 250 === 0) speed += 0.5;
         scoreEl.textContent = score;
+
         if (score > best) {
           best = score;
           bestEl.textContent = best;
-          localStorage.setItem("runner_best", best);
+          try {
+            localStorage.setItem("runner_best", best);
+          } catch (e) {}
         }
 
         if (!player.onGround) {
@@ -223,7 +245,6 @@ function setDuck(active) {
         }
       }
 
-      // Draw ground & player & obstacles
       ctx.fillStyle = "#374151";
       ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
 
