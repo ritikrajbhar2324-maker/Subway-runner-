@@ -95,13 +95,22 @@
     const ADSGRAM_BLOCK_ID = "int-61505";
     let adController = null;
 
-    if (window.AdsGram && typeof window.AdsGram.init === "function") {
-      try {
-        adController = window.AdsGram.init({ blockId: ADSGRAM_BLOCK_ID });
-      } catch (e) {
-        adController = null;
+    function getAdController() {
+      if (adController && typeof adController.show === "function") {
+        return adController;
       }
+      if (window.AdsGram && typeof window.AdsGram.init === "function") {
+        try {
+          adController = window.AdsGram.init({ blockId: ADSGRAM_BLOCK_ID });
+          return adController;
+        } catch (e) {
+          return null;
+        }
+      }
+      return null;
     }
+
+    getAdController();
 
     const groundY = 470;
     let best = 0;
@@ -136,8 +145,9 @@
     function restartWithAd() {
       if (adShowing) return;
 
-      if (!adController || typeof adController.show !== "function") {
-        adSlot.textContent = "Ad controller unavailable, restarting...";
+      const controller = getAdController();
+      if (!controller || typeof controller.show !== "function") {
+        adSlot.textContent = "AdsGram SDK not ready (int-61505), restarting...";
         resetGame();
         return;
       }
@@ -145,7 +155,7 @@
       adShowing = true;
       adSlot.textContent = "Loading ad (int-61505)...";
 
-      adController
+      controller
         .show()
         .then(() => {
           adSlot.textContent = "Ad shown (int-61505)";
