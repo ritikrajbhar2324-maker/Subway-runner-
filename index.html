@@ -83,13 +83,14 @@
     <button class="ctrl" id="btn-duck">DUCK</button>
   </div>
 
-  <div id="ad-slot">AdsGram Interstitial Active (int-61505)</div>
+  <div id="ad-slot">AdsGram Interstitial Ready (int-61505)</div>
 
   <script>
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     const scoreEl = document.getElementById("score");
     const bestEl = document.getElementById("best");
+    const adSlot = document.getElementById("ad-slot");
 
     const ADSGRAM_BLOCK_ID = "int-61505";
     const adController = window.AdsGram?.init({ blockId: ADSGRAM_BLOCK_ID });
@@ -114,18 +115,24 @@
     function restartWithAd() {
       if (adShowing) return;
 
-      if (!adController) {
+      if (!window.AdsGram || !adController) {
+        adSlot.textContent = "SDK/Controller not ready (int-61505)";
         resetGame();
         return;
       }
 
       adShowing = true;
+      adSlot.textContent = "Requesting AdsGram ad (int-61505)...";
+
       adController
         .show()
         .then(() => {
+          adSlot.textContent = "Ad completed (int-61505)";
           resetGame();
         })
-        .catch(() => {
+        .catch((err) => {
+          const msg = err?.description  err?.message  "No fill / closed";
+          adSlot.textContent = "Ad fallback: " + msg;
           resetGame();
         });
     }
@@ -141,7 +148,7 @@
       }
     }
 
-    function setDuck(active) {
+function setDuck(active) {
       if (gameOver) return;
       ducking = active;
       if (player.onGround) {
@@ -151,8 +158,7 @@
     }
 
     document.getElementById("btn-jump").addEventListener("pointerdown", jump);
-
-const duckBtn = document.getElementById("btn-duck");
+    const duckBtn = document.getElementById("btn-duck");
     duckBtn.addEventListener("pointerdown", () => setDuck(true));
     duckBtn.addEventListener("pointerup", () => setDuck(false));
     duckBtn.addEventListener("pointerleave", () => setDuck(false));
